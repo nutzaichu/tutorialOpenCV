@@ -13,6 +13,8 @@
 
 using namespace ci;
 using namespace ci::app;
+using namespace cv;
+using namespace gl;
 
 class tutorialOpenCVApp : public AppNative {
   public:
@@ -20,37 +22,43 @@ class tutorialOpenCVApp : public AppNative {
 	void update();
 	void draw();
 	
-	CaptureRef		mCapture;
-	gl::TextureRef	mTexture;
+	Capture		mCapture;
+	Texture		mTexture;
+	Surface		mSurface;
 };
 
 void tutorialOpenCVApp::setup()
 {
-
-	// The included image is copyright Trey Ratcliff
-	// http://www.flickr.com/photos/stuckincustoms/4045813826/
-	mCapture = Capture::create(640, 480);
-	mCapture->start();
-	//ci::Surface8u surface( loadImage( loadAsset( "dfw.jpg" ) ) );
-	//cv::Mat input( toOcv( surface ) );
-	//cv::Mat output;
-	mTexture = gl::Texture::create(mCapture->getSurface());
-	//mTexture = gl::Texture( fromOcv( output ) );
+	mCapture = Capture(640, 480);
+	mCapture.start();
 }   
 void tutorialOpenCVApp::update()
 {
-//	if (mCapture && mCapture->checkNewFrame()) {
-	mTexture = gl::Texture::create(mCapture->getSurface());
-//	}
+	mSurface = Surface(mCapture.getSurface());
+	Mat input(toOcv(mSurface));
+	
+	Mat img(toOcv(Surface(loadImage(loadAsset("dfw.jpg")))));
+
+	int R, G, B;
+	for (int i = 0; i < input.rows; i++){
+		for (int j = 0; j < input.cols; j++){
+			R = input.at<cv::Vec3b>(i, j)[0];
+			G = input.at<cv::Vec3b>(i, j)[1];
+			B = input.at<cv::Vec3b>(i, j)[2];
+			if (G - R > 10 && G - B > 10){
+				input.at<cv::Vec3b>(i, j)[0] = img.at<cv::Vec3b>(i, j)[0];
+				input.at<cv::Vec3b>(i, j)[1] = img.at<cv::Vec3b>(i, j)[1];
+				input.at<cv::Vec3b>(i, j)[2] = img.at<cv::Vec3b>(i, j)[2];
+			}
+		}
+	}
+
+	mTexture = Texture(fromOcv(input));
+
 }
 void tutorialOpenCVApp::draw()
 {
 	gl::clear();
 	gl::draw( mTexture );
 }
-
-void bgSubstract(){
-
-}
-
 CINDER_APP_NATIVE( tutorialOpenCVApp, RendererGl )
